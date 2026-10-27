@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ai-insight-agent",
+  "account_id": "726299dce0aa2a114f6fd52efee9589b",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "routes": [{ "pattern": "insight.smoh.dev", "custom_domain": true }],
+  "workers_dev": false,
+  "triggers": { "crons": ["*/15 * * * *"] },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "ai-insight-agent", "database_id": "1fab6023-ec0c-4235-bd7b-2fa77c28931c", "migrations_dir": "migrations" }
+  ],
+  "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "625807df2d4b41fea35a854e45f16d5c" }],
+  "vars": {
+    "PUBLIC_URL": "https://insight.smoh.dev",
+    "ALLOWED_GITHUB_ID": "139704503",
+    "MODEL": "claude-opus-5-5",
+    "DENY_CWD": ""
+  },
+  "observability": { "enabled": true }
+}

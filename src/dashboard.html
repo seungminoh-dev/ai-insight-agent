@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Insight</title>
+<style>
+  :root { --bg:#fafaf9; --fg:#1c1917; --muted:#78716c; --line:#e7e5e4; --card:#fff; --accent:#4338ca; --soft:#eef2ff; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0c0a09; --fg:#f5f5f4; --muted:#a8a29e; --line:#292524; --card:#1c1917; --accent:#a5b4fc; --soft:#1e1b4b; }
+  }
+  * { box-sizing: border-box; }
+  [v-cloak] { display: none; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", system-ui, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  h1 { font-size: 20px; margin: 0; }
+  a { color: var(--muted); }
+  nav { display: flex; gap: 6px; margin: 16px 0 20px; overflow-x: auto; }
+  nav button { font: inherit; white-space: nowrap; border: 1px solid var(--line); background: var(--card); color: var(--fg); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+  nav button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+  .stmt { font-weight: 600; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .tag { display: inline-block; background: var(--soft); color: var(--accent); border-radius: 6px; padding: 0 6px; font-size: 12px; margin-right: 4px; }
+  .q { border-left: 3px solid var(--line); padding-left: 10px; margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .q b { display: block; color: var(--muted); font-size: 12px; font-weight: 500; }
+  .actions { margin-top: 10px; display: flex; gap: 6px; }
+  .actions button { font: inherit; font-size: 13px; border: 1px solid var(--line); background: transparent; color: var(--fg); border-radius: 8px; padding: 2px 10px; cursor: pointer; }
+  .theme { cursor: pointer; }
+  .empty { color: var(--muted); text-align: center; padding: 48px 0; }
+  button.link { font: inherit; border: 0; background: none; color: var(--accent); cursor: pointer; padding: 0; }
+</style>
+</head>
+<body>
+<main id="app" v-cloak>
+  <header>
+    <h1>Insight</h1>
+    <span class="meta">
+      추출 대기 {{ counts.pending ?? 0 }} ·
+      <button class="link" :disabled="busy" @click="extractNow">{{ busy ? "추출 중…" : "지금 추출" }}</button> ·
+      <a href="/logout">로그아웃</a>
+    </span>
+  </header>
+
+  <nav>
+    <button v-for="t in tabs" :key="t.id" :class="{ on: tab === t.id }" @click="go(t.id)">
+      {{ t.label }}<span v-if="counts[t.id]"> {{ counts[t.id] }}</span>
+    </button>
+  </nav>
+
+  <section v-if="tab === 'themes'">
+    <div v-for="t in themes" :key="t.id" class="card theme" @click="openTheme(t)">
+      <div class="stmt">{{ t.statement }}</div>
+      <div class="meta">{{ t.count }}번 · 세션 {{ t.sessions }}개 · 최근 {{ day(t.last_at) }}</div>
+    </div>
+    <p v-if="!themes.length" class="empty">아직 반복되는 생각이 없습니다.</p>
+  </section>
+
+  <section v-else>
+    <p v-if="theme" class="meta">테마 “{{ theme.statement }}” · <a href="#" @click.prevent="go('themes')">돌아가기</a></p>
+    <article v-for="i in items" :key="i.id" class="card">
+      <div class="stmt">{{ i.statement }}</div>
+      <div class="meta">
+        <span class="tag">{{ KIND[i.kind] ?? i.kind }} · {{ REACTION[i.reaction] ?? i.reaction }}</span>
+        {{ i.source === 'mcp' ? '대화 중 OK' : i.project }} · {{ day(i.at) }}<span v-if="i.theme"> · {{ i.theme }}</span>
+      </div>
+      <div v-if="i.ai_proposal" class="q"><b>AI 제안</b>{{ i.ai_proposal }}</div>
+      <div v-if="i.seed" class="q"><b>내 말</b>{{ i.seed }}</div>
+      <div v-if="i.expression" class="q"><b>AI 표현</b>{{ i.expression }}</div>
+      <div v-if="i.reason" class="q"><b>이유</b>{{ i.reason }}</div>
+      <div v-if="i.context" class="q"><b>맥락</b>{{ i.context }}</div>
+      <div class="actions">
+        <button v-if="i.status !== 'confirmed'" @click="set(i, 'confirmed')">확정</button>
+        <button v-if="i.status !== 'dismissed'" @click="set(i, 'dismissed')">아님</button>
+        <button v-if="i.status !== 'candidate'" @click="set(i, 'candidate')">후보로</button>
+      </div>
+    </article>
+    <p v-if="!items.length" class="empty">비어 있습니다.</p>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@3.5.43/dist/vue.global.prod.js"></script>
+<script>
+  const KIND = { value: "가치", principle: "원칙", preference: "선호", belief: "신념", rejection: "거절" };
+  const REACTION = {
+    spontaneous: "먼저 말함", agree: "동의", disagree: "반박", refine: "보완", articulated: "정리됨",
+    interrupt: "중단", tool_denied: "도구 거절", choice: "다른 선택",
+  };
+  async function get(url) {
+    const res = await fetch(url);
+    if (res.status === 401) location.href = "/login";
+    return res.json();
+  }
+
+  Vue.createApp({
+    data: () => ({
+      KIND, REACTION,
+      tab: "candidate", theme: null, items: [], themes: [], counts: {}, busy: false,
+      tabs: [
+        { id: "candidate", label: "후보" },
+        { id: "confirmed", label: "확정" },
+        { id: "rejection", label: "AI 제안 → 내 거절" },
+        { id: "themes", label: "평소 가치관" },
+      ],
+    }),
+    methods: {
+      async load() {
+        this.counts = await get("/api/counts");
+        if (this.tab === "themes") { this.themes = await get("/api/themes"); return; }
+        const query = this.theme ? "theme=" + this.theme.id : this.tab === "rejection" ? "kind=rejection" : "status=" + this.tab;
+        this.items = await get("/api/insights?" + query);
+      },
+      go(tab) { this.tab = tab; this.theme = null; this.load(); },
+      async extractNow() {
+        this.busy = true;
+        try { await fetch("/api/extract", { method: "POST" }); } finally { this.busy = false; }
+        this.load();
+      },
+      openTheme(t) { this.theme = t; this.tab = "theme"; this.load(); },
+      async set(item, status) {
+        await fetch("/api/insights/" + item.id, {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }),
+        });
+        item.status = status;
+        if (this.tab === "candidate" || this.tab === "confirmed") this.items = this.items.filter((i) => i.status === this.tab);
+        this.counts = await get("/api/counts");
+      },
+      day(ms) { return ms ? new Date(ms).toLocaleDateString("ko-KR", { month: "short", day: "numeric" }) : ""; },
+    },
+    mounted() { this.load(); },
+  }).mount("#app");
+</script>
+</body>
+</html>
