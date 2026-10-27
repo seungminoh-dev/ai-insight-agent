@@ -1,0 +1,10 @@
+{
+  "name": "insight",
+  "version": "0.1.0",
+  "description": "Insight와 연결: 대화에서 내 생각 정리·저장(/insight:save), 평소 가치관 보기(/insight:themes)",
+  "author": {
+    "name": "seungminoh-dev"
+  },
+  "repository": "https://github.com/seungminoh-dev/ai-insight-agent",
+  "keywords": ["insight", "values", "mcp"]
+}

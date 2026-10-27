@@ -1,0 +1,16 @@
+{
+  "name": "ai-insight-agent",
+  "owner": {
+    "name": "seungminoh-dev"
+  },
+  "metadata": {
+    "description": "Insight: AI와 나눈 대화에서 내 생각과 'AI 제안 → 내 거절'을 모으는 플러그인"
+  },
+  "plugins": [
+    {
+      "name": "insight",
+      "source": "./plugins/insight",
+      "description": "Insight: 대화에서 내 생각을 정리해 저장하고(/insight:save), 반복되는 평소 가치관을 본다(/insight:themes)"
+    }
+  ]
+}
