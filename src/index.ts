@@ -1,4 +1,4 @@
-import { env as bindings } from "cloudflare:workers";
+import { WorkerEntrypoint, env as bindings } from "cloudflare:workers";
 import {
   AuthorizationError,
   CimdFetchError,
@@ -273,6 +273,39 @@ async function api(req: Request, env: Env, url: URL) {
     return new Response(null, { status: 204 });
   }
   return new Response("not found", { status: 404 });
+}
+
+// ── 읽기 전용 RPC: 같은 계정의 다른 Worker가 Service Binding으로 부른다 (HTTP로는 열리지 않는다) ──
+
+export class ReadApi extends WorkerEntrypoint<Env> {
+  /** 후보·확정 수, 아직 분석하지 않은 대화 수, 최근 확정 3개, 많이 나온 테마 3개 */
+  async summary() {
+    const db = this.env.DB;
+    const [counts, recent, themes] = await Promise.all([
+      db
+        .prepare(
+          `SELECT COALESCE(SUM(status = 'candidate'), 0) AS candidate, COALESCE(SUM(status = 'confirmed'), 0) AS confirmed,
+                  (SELECT COUNT(*) FROM pairs WHERE done = 0) AS pending
+           FROM insights`,
+        )
+        .first<{ candidate: number; confirmed: number; pending: number }>(),
+      db.prepare("SELECT statement, kind, at FROM insights WHERE status = 'confirmed' ORDER BY at DESC LIMIT 3").all<{ statement: string; kind: string; at: number }>(),
+      db
+        .prepare(
+          `SELECT t.statement, COUNT(i.id) AS count
+           FROM themes t JOIN insights i ON i.theme_id = t.id AND i.status != 'dismissed'
+           GROUP BY t.id ORDER BY count DESC, MAX(i.at) DESC LIMIT 3`,
+        )
+        .all<{ statement: string; count: number }>(),
+    ]);
+    return {
+      candidate: counts?.candidate ?? 0,
+      confirmed: counts?.confirmed ?? 0,
+      pending: counts?.pending ?? 0,
+      recent: recent.results,
+      themes: themes.results,
+    };
+  }
 }
 
 // ── 공통 ─────────────────────────────────────────────────────
