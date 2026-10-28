@@ -7,7 +7,8 @@
   "compatibility_flags": ["nodejs_compat"],
   "routes": [{ "pattern": "insight.smoh.dev", "custom_domain": true }],
   "workers_dev": false,
-  "triggers": { "crons": ["*/15 * * * *"] },
+  // 하루 한 번 몰아서 추출: 배치가 커야 턴당 비용이 낮다. KST 03~05시, 한 회 10분이라 남은 건 다음 시각에
+  "triggers": { "crons": ["0 18-20 * * *"] },
   "d1_databases": [
     { "binding": "DB", "database_name": "ai-insight-agent", "database_id": "1fab6023-ec0c-4235-bd7b-2fa77c28931c", "migrations_dir": "migrations" }
   ],
