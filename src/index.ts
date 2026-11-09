@@ -242,7 +242,7 @@ async function api(req: Request, env: Env, url: URL) {
   const q = url.searchParams;
   if (url.pathname === "/api/principles") {
     // 강도는 후보 수가 아니라 몇 개 프로젝트·몇 번의 발언에서 나왔는지로 센다 (한 메시지에서 여러 개 뽑혀도 한 번)
-    const [principles, quotes, status] = await env.DB.batch([
+    const [principles, status] = await env.DB.batch([
       env.DB.prepare(
         `SELECT t.id, t.statement, t.axis,
                 COUNT(DISTINCT coalesce(i.prompt_id, i.id)) AS evidence,
@@ -251,21 +251,12 @@ async function api(req: Request, env: Env, url: URL) {
          FROM themes t JOIN insights i ON i.theme_id = t.id AND i.status != 'dismissed'
          GROUP BY t.id ORDER BY projects DESC, evidence DESC, last_at DESC`,
       ),
-      // 원칙마다 대표 발언 하나와 AI 제안을 거절한 장면 하나: 너무 짧거나 긴 말은 뒤로, 추출 때 확신이 높고 원칙을 직접 말한 것을 앞으로
-      env.DB.prepare(
-        `SELECT theme_id, seed, project, at, ai_proposal, kind = 'rejection' AS rejection FROM (
-           SELECT i.*, ROW_NUMBER() OVER (PARTITION BY theme_id, kind = 'rejection'
-                                          ORDER BY length(seed) BETWEEN 25 AND 160 DESC, coalesce(confidence, 0.8) DESC,
-                                                   kind IN ('principle', 'value', 'belief') DESC, at DESC) AS rn
-           FROM insights i WHERE theme_id IS NOT NULL AND status != 'dismissed' AND seed != '')
-         WHERE rn = 1`,
-      ),
       env.DB.prepare(
         `SELECT (SELECT COUNT(*) FROM insights WHERE status != 'dismissed') AS evidence,
                 (SELECT COUNT(*) FROM pairs WHERE done = 0) AS pending`,
       ),
     ]);
-    return Response.json({ principles: principles.results, quotes: quotes.results, status: status.results[0] });
+    return Response.json({ principles: principles.results, status: status.results[0] });
   }
   if (url.pathname === "/api/insights" && req.method === "GET") {
     const text = q.get("q")?.trim();

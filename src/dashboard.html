@@ -2,206 +2,378 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f4f5f7">
 <title>Insight</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<script>
+  // 테마: 자동이면 기기 설정을 따르고, 밝게·어둡게를 고르면 html의 data-theme이 이긴다. 그리기 전에 걸어 깜빡임을 막는다
+  try {
+    const saved = localStorage.getItem("theme");
+    if (saved === "light" || saved === "dark") document.documentElement.dataset.theme = saved;
+  } catch {}
+</script>
 <style>
-  :root { --bg:#fafaf9; --fg:#1c1917; --sub:#57534e; --muted:#a8a29e; --line:#e7e5e4; --rule:#d6d3d1;
-          --sans:-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", system-ui, sans-serif; --serif:"Noto Serif KR", "AppleMyungjo", serif; }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg:#0c0a09; --fg:#f5f5f4; --sub:#a8a29e; --muted:#78716c; --line:#292524; --rule:#57534e; }
+  /* Insight: 비서(ai.smoh.dev)와 같은 틀. 회색 바탕에 흰 패널(테두리 1px, 둥글기 12), 울트라마린 강조.
+     휴대폰은 아래 탭, 넓은 화면은 왼쪽 메뉴. 글꼴은 Pretendard 하나 */
+  :root {
+    color-scheme: light;
+    --page: #f4f5f7; --surface: #ffffff; --head: #fafbfc; --panel-line: #e3e6ea; --line: #e6e8ec; --line-soft: #f0f2f4; --line2: #d7dbe2;
+    --ink: #141b2d; --sub: #5e6676; --accent: #2e46c9; --accent-soft: #eef0fc; --on-accent: #ffffff; --navy: #192849; --deadline: #b0480b;
   }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      color-scheme: dark;
+      --page: #0e1328; --surface: #151b35; --head: #19203d; --panel-line: #242c4c; --line: #242c4c; --line-soft: #1f2644; --line2: #3a4468;
+      --ink: #e8ecf7; --sub: #98a2c3; --accent: #9aa8ff; --accent-soft: #232c5a; --on-accent: #0e1328; --deadline: #f2a06b;
+    }
+  }
+  /* 위와 같은 값이다(바꾸면 둘 다 바꾼다) */
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+    --page: #0e1328; --surface: #151b35; --head: #19203d; --panel-line: #242c4c; --line: #242c4c; --line-soft: #1f2644; --line2: #3a4468;
+    --ink: #e8ecf7; --sub: #98a2c3; --accent: #9aa8ff; --accent-soft: #232c5a; --on-accent: #0e1328; --deadline: #f2a06b;
+  }
+
   * { box-sizing: border-box; }
   [v-cloak] { display: none; }
-  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.7 var(--sans); word-break: keep-all; -webkit-font-smoothing: antialiased; }
-  main { max-width: 680px; margin: 0 auto; padding: 24px 16px 72px; }
-  a { color: inherit; text-decoration: none; }
-  a:hover { text-decoration: underline; text-underline-offset: 3px; }
-  button.link { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
-  .bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; font-size: 13px; color: var(--muted); }
-  .bar input { font: inherit; color: var(--fg); background: none; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 2px 0; width: 10rem; outline: none; }
-  .bar input:focus { border-color: var(--sub); }
-  h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.35; margin: 32px 0 6px; }
-  .lede { color: var(--sub); font-size: 14px; margin: 0; }
-  section { border-top: 1px solid var(--line); margin-top: 28px; padding-top: 20px; }
-  .axis { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
-  .pr { display: block; font-size: 18px; font-weight: 600; line-height: 1.5; letter-spacing: -0.01em; }
-  .meta { font-size: 13px; color: var(--sub); margin: 2px 0 12px; }
-  .lead { margin-bottom: 22px; }
-  blockquote { font-family: var(--serif); font-size: 15.5px; line-height: 1.8; margin: 0 0 12px; padding-left: 14px; border-left: 2px solid var(--rule); white-space: pre-wrap; overflow-wrap: anywhere; }
-  blockquote small { display: block; font: 12px/1.6 var(--sans); color: var(--muted); margin-top: 4px; white-space: normal; }
-  .line { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 4px 0; }
-  .line small { flex: none; font-size: 13px; color: var(--muted); }
-  .more { font-size: 13px; color: var(--muted); margin-top: 6px; }
-  .back { font-size: 13px; color: var(--sub); }
-  .ev { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 16px; }
-  .ev.off blockquote { color: var(--muted); }
-  .note { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; font-size: 13px; color: var(--sub); margin: 0 0 4px; }
-  .note button { flex: none; color: var(--muted); }
-  .note button:hover { color: var(--fg); }
-  footer { border-top: 1px solid var(--line); margin-top: 40px; padding-top: 12px; font-size: 12px; color: var(--muted); }
-  footer a, footer button.link { color: var(--sub); }
+  body {
+    margin: 0; background: var(--page); color: var(--ink); word-break: keep-all; -webkit-font-smoothing: antialiased;
+    font: 15px/1.5 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  }
+  p, h1, h2, ul { margin: 0; }
+  a { color: inherit; }
+  button, input { font: inherit; color: inherit; }
+
+  /* 탭: 휴대폰은 아래 막대, 900px부터 왼쪽 메뉴 */
+  .side {
+    position: fixed; inset: auto 0 0; z-index: 10; display: flex; justify-content: space-around;
+    padding: 4px 8px calc(4px + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--line);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 700; }
+  .mark {
+    width: 24px; height: 24px; border-radius: 6px; background: var(--navy); color: #fff;
+    display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
+  }
+  .side .brand, .side-foot { display: none; }
+  .nav {
+    flex: 1; max-width: 96px; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; font-size: 11px; color: var(--sub); text-decoration: none;
+  }
+  .nav[aria-current='page'] { color: var(--accent); font-weight: 600; }
+  .main {
+    max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px;
+    padding: calc(24px + env(safe-area-inset-top)) 16px calc(96px + env(safe-area-inset-bottom));
+  }
+  @media (min-width: 900px) {
+    .shell { display: flex; align-items: flex-start; max-width: 1240px; margin: 0 auto; }
+    .side {
+      position: sticky; top: 0; flex: 0 0 220px; min-height: 100dvh; flex-direction: column; justify-content: flex-start;
+      gap: 4px; padding: 28px 14px; background: transparent; border: 0;
+    }
+    .side .brand { display: flex; padding: 0 10px 20px; }
+    .nav { flex: none; max-width: none; min-height: 40px; flex-direction: row; justify-content: flex-start; gap: 12px; padding: 0 10px; border-radius: 8px; font-size: 14px; }
+    .nav svg { width: 18px; height: 18px; }
+    .nav[aria-current='page'] { background: var(--surface); box-shadow: 0 0 0 1px var(--panel-line); color: var(--ink); }
+    .side-foot { display: block; margin-top: auto; padding: 0 10px; font-size: 12px; line-height: 1.7; color: var(--sub); }
+    .main { flex: 1; min-width: 0; max-width: 820px; margin: 0; padding: 32px 40px 40px 12px; gap: 16px; }
+  }
+
+  /* 제목: 큰 제목과 메타 한 줄. 상세는 제목이 문장이라 조금 작게 */
+  .head { padding: 0 4px 4px; }
+  .head h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25; }
+  .head h1.long { font-size: 22px; line-height: 1.4; }
+  .head .meta { margin-top: 6px; font-size: 13px; color: var(--sub); }
+  .back { display: inline-flex; align-items: center; min-height: 44px; margin: -12px 0 0 -6px; padding: 0 6px; font-size: 14px; color: var(--sub); text-decoration: none; }
+
+  .panel { background: var(--surface); border: 1px solid var(--panel-line); border-radius: 12px; overflow: hidden; }
+  .ph {
+    display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: var(--head); border-bottom: 1px solid var(--line);
+    font-size: 12px; font-weight: 600; color: var(--sub);
+  }
+  .ph .r { margin-left: auto; font-weight: 400; }
+  .panel-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .items { list-style: none; padding: 0; }
+  .items > li + li { border-top: 1px solid var(--line-soft); }
+  .item { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 10px 16px; text-decoration: none; }
+  .ev { align-items: flex-start; }
+  a.item:hover, .toggle:hover { background: var(--head); }
+  .grow { flex: 1; min-width: 0; }
+  .name { font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; }
+  .sub { display: block; font-size: 12px; color: var(--sub); overflow-wrap: anywhere; }
+  .name + .sub, .sub + .sub { margin-top: 3px; }
+  .sub a { color: var(--accent); text-decoration: none; }
+  .new { margin-left: 6px; font-size: 12px; font-weight: 600; color: var(--accent); white-space: nowrap; }
+  .chev { flex: none; color: var(--line2); }
+  .off .name { color: var(--sub); text-decoration: line-through; }
+  .toggle {
+    display: flex; width: 100%; min-height: 44px; align-items: center; padding: 0 16px; border: 0; border-top: 1px solid var(--line-soft);
+    background: none; font-size: 13px; color: var(--sub); text-align: left; cursor: pointer;
+  }
+  .empty, .loading { padding: 14px 16px; font-size: 13px; color: var(--sub); }
+  .alert { font-size: 13px; color: var(--deadline); }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--line2);
+    border-radius: 10px; background: transparent; font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer; white-space: nowrap;
+  }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .btn.sm { flex: none; min-height: 34px; padding: 0 12px; font-size: 13px; }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+  .search { display: flex; gap: 8px; }
+  .search input {
+    flex: 1; min-width: 0; min-height: 44px; padding: 0 14px; border: 1px solid var(--line2); border-radius: 10px; background: var(--surface);
+  }
+  .search input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .segmented { display: inline-flex; align-self: flex-start; gap: 2px; padding: 3px; border: 1px solid var(--line2); border-radius: 11px; background: var(--page); }
+  .segmented label { position: relative; }
+  .segmented input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+  .segmented span { display: flex; align-items: center; min-height: 38px; padding: 0 16px; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--sub); }
+  .segmented input:checked + span { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--line2); }
+  .segmented input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
 </style>
 </head>
 <body>
-<main id="app" v-cloak>
-  <div class="bar">
-    <a href="#/">Insight</a>
-    <form @submit.prevent="search"><input v-model="q" type="search" placeholder="근거 검색" aria-label="근거 검색"></form>
-  </div>
+<div id="app" class="shell" v-cloak>
+  <nav class="side" aria-label="화면">
+    <p class="brand"><span class="mark"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 13c0-5 3-8 7-9l1 2c-2.5 1-4 3-4 5h3v7H4zm9 0c0-5 3-8 7-9l1 2c-2.5 1-4 3-4 5h3v7h-7z"/></svg></span>Insight</p>
+    <a v-for="t in TABS" :key="t.id" class="nav" :href="'#' + t.id" :aria-current="tab === t.id ? 'page' : undefined">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path :d="t.icon"/></svg>
+      {{ t.label }}
+    </a>
+    <p class="side-foot" v-if="data">매일 새벽 3~5시 정리<br>분석 대기 {{ data.status.pending }}턴</p>
+  </nav>
 
-  <template v-if="view === ''">
-    <h1>내가 일하는 방식</h1>
-    <p class="lede" v-if="!data">불러오는 중…</p>
-    <p class="lede" v-else-if="principles.length">여러 프로젝트에서 되풀이한 말을 원칙으로 묶었습니다. 인용은 모두 내가 실제로 한 말입니다.</p>
-    <p class="lede" v-else>아직 되풀이된 원칙이 없습니다. 대화가 쌓이면 새벽마다 정리됩니다.</p>
+  <main class="main">
+    <section class="panel panel-body" role="alert" v-if="error"><p class="alert">{{ error }}</p></section>
 
-    <section v-for="a in axes" :key="a.name">
-      <p class="axis">{{ a.name }}</p>
-      <div v-for="p in a.lead" :key="p.id" class="lead">
-        <a class="pr" :href="'#/p/' + p.id">{{ p.statement }}</a>
-        <p class="meta">{{ meta(p) }}</p>
-        <blockquote v-for="s in shown(p)" :key="s.seed">{{ s.seed }}<small>{{ caption(s) }}</small></blockquote>
-      </div>
-      <a v-for="p in a.rest" :key="p.id" class="line" :href="'#/p/' + p.id"><span>{{ p.statement }}</span><small>{{ p.projects >= 2 ? `${p.projects}개 프로젝트` : `근거 ${p.evidence}건` }}</small></a>
-      <template v-if="a.minor.length">
-        <button class="link more" @click="more[a.name] = !more[a.name]">
-          한 번만 나온 것 {{ a.minor.length }}개 {{ more[a.name] ? "접기" : "보기" }}
-        </button>
-        <template v-if="more[a.name]">
-          <a v-for="p in a.minor" :key="p.id" class="line" :href="'#/p/' + p.id"><span>{{ p.statement }}</span><small>{{ day(p.last_at) }}</small></a>
-        </template>
-      </template>
-    </section>
-
-    <section v-if="fresh.length">
-      <p class="axis">요즘 새로 보이는 것</p>
-      <p class="pr">최근 2주 사이 처음 나온 원칙 {{ fresh.length }}개</p>
-      <p class="meta">{{ freshAxes }}</p>
-      <a v-for="p in fresh.slice(0, 8)" :key="p.id" class="line" :href="'#/p/' + p.id"><span>{{ p.statement }}</span><small>{{ day(p.first_at) }}</small></a>
-    </section>
-  </template>
-
-  <template v-else>
-    <p style="margin: 28px 0 0"><a class="back" href="#/">← 내가 일하는 방식</a></p>
-    <template v-if="view === 'p'">
-      <h1>{{ current?.statement ?? "합쳐졌거나 없는 원칙" }}</h1>
-      <p class="meta" v-if="current">{{ current.axis || "아직 분류 전" }} · {{ meta(current) }}</p>
+    <!-- 원칙: 축마다 패널 하나, 원칙은 한 줄씩. 다섯 개 넘으면 접어 둔다 -->
+    <template v-if="screen === 'principles'">
+      <header class="head">
+        <h1>원칙</h1>
+        <p class="meta" v-if="data">여러 번 되풀이한 내 말을 묶었어요 · 원칙 {{ principles.length }}개 · 근거 {{ data.status.evidence }}건</p>
+      </header>
+      <p class="loading" v-if="!data && !error">불러오는 중…</p>
+      <section class="panel" v-else-if="data && !principles.length"><p class="empty">아직 묶인 원칙이 없어요. 대화가 쌓이면 새벽마다 정리돼요.</p></section>
+      <section class="panel" v-for="a in axes" :key="a.name">
+        <h2 class="ph">{{ a.name }}<span class="r">{{ a.list.length }}개</span></h2>
+        <ul class="items">
+          <li v-for="p in (open[a.name] ? a.list : a.list.slice(0, 5))" :key="p.id">
+            <a class="item" :href="'#p/' + p.id">
+              <span class="grow">
+                <span class="name">{{ p.statement }}<span class="new" v-if="isNew(p)">새로</span></span>
+                <span class="sub">{{ p.projects }}개 프로젝트 · 근거 {{ p.evidence }}건</span>
+              </span>
+              <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            </a>
+          </li>
+        </ul>
+        <button class="toggle" v-if="a.list.length > 5" @click="open[a.name] = !open[a.name]">{{ open[a.name] ? "접기" : `나머지 ${a.list.length - 5}개 보기` }}</button>
+      </section>
     </template>
-    <h1 v-else>‘{{ arg }}’ {{ loading ? "찾는 중…" : `근거 ${items.length}건` }}</h1>
 
-    <article v-for="i in items" :key="i.id" class="ev" :class="{ off: i.status === 'dismissed' }">
-      <blockquote>{{ i.seed || i.statement }}<small>{{ caption(i) }}</small></blockquote>
-      <p class="note">
-        <span>{{ i.statement }}</span>
-        <button class="link" @click="toggle(i)">{{ i.status === "dismissed" ? "되돌리기" : "아님" }}</button>
-      </p>
-      <p class="note" v-if="view === 's' && i.theme"><a :href="'#/p/' + i.theme_id">원칙 · {{ i.theme }}</a></p>
-    </article>
-    <p class="lede" v-if="!loading && !items.length" style="margin-top: 16px">근거가 없습니다.</p>
-  </template>
+    <!-- 원칙 하나: 근거가 된 내 말 전부. 틀린 근거는 숨긴다 -->
+    <template v-else-if="screen === 'principle'">
+      <header class="head">
+        <a class="back" href="#principles">‹ 원칙</a>
+        <h1 class="long">{{ current?.statement ?? "다른 원칙에 합쳐졌거나 없는 원칙이에요" }}</h1>
+        <p class="meta" v-if="current">{{ current.axis || UNSORTED }} · {{ current.projects }}개 프로젝트 · 근거 {{ current.evidence }}건 · {{ span(current) }}</p>
+      </header>
+      <section class="panel">
+        <h2 class="ph">근거가 된 내 말<span class="r" v-if="!loading">{{ rows.length }}건</span></h2>
+        <p class="loading" v-if="loading">불러오는 중…</p>
+        <p class="empty" v-else-if="!rows.length">근거가 없어요.</p>
+        <ul class="items"><li v-for="r in rows" :key="r.key" class="item ev" :class="{ off: r.off }">
+          <div class="grow">
+            <p class="name">{{ r.seed }}</p>
+            <p class="sub" v-if="r.ai_proposal">AI 제안: {{ r.ai_proposal }}</p>
+            <p class="sub">{{ r.project || "claude.ai" }} · {{ day(r.at) }}</p>
+          </div>
+          <button class="btn sm" @click="toggle(r)">{{ r.off ? "되돌리기" : "아님" }}</button>
+        </li></ul>
+      </section>
+    </template>
 
-  <footer v-if="data">
-    매일 새벽 정리 · 반영된 근거 {{ data.status.evidence }}건 · 분석 대기 {{ data.status.pending }}턴 ·
-    <button class="link" :disabled="busy" @click="extractNow">{{ busy ? "정리 중…" : "지금 추출" }}</button> ·
-    <a href="/logout">로그아웃</a>
-  </footer>
-</main>
+    <!-- 최근: 새로 반영된 근거를 날짜별로. 찾으면 결과만 -->
+    <template v-else-if="screen === 'recent'">
+      <header class="head">
+        <h1>최근</h1>
+        <p class="meta">새벽마다 대화에서 찾아 반영한 내 말이에요</p>
+      </header>
+      <form class="search" role="search" @submit.prevent="search">
+        <input v-model="q" type="search" placeholder="내 말·AI 제안에서 찾기" aria-label="근거 찾기">
+        <button class="btn">찾기</button>
+      </form>
+      <p class="loading" v-if="loading">불러오는 중…</p>
+      <section class="panel" v-else-if="!days.length"><p class="empty">{{ arg ? `‘${arg}’이(가) 들어간 근거가 없어요.` : "아직 반영된 근거가 없어요." }}</p></section>
+      <section class="panel" v-for="d in days" :key="d.label">
+        <h2 class="ph">{{ d.label }}<span class="r">{{ d.rows.length }}건</span></h2>
+        <ul class="items"><li v-for="r in d.rows" :key="r.key" class="item ev" :class="{ off: r.off }">
+          <div class="grow">
+            <p class="name">{{ r.seed }}</p>
+            <p class="sub" v-if="r.ai_proposal">AI 제안: {{ r.ai_proposal }}</p>
+            <p class="sub">{{ r.project || "claude.ai" }}<template v-for="[id, statement] in r.themes" :key="id"> · <a :href="'#p/' + id">{{ statement }}</a></template></p>
+          </div>
+          <button class="btn sm" @click="toggle(r)">{{ r.off ? "되돌리기" : "아님" }}</button>
+        </li></ul>
+      </section>
+    </template>
+
+    <template v-else>
+      <header class="head"><h1>설정</h1></header>
+      <section class="panel">
+        <h2 class="ph">화면</h2>
+        <div class="panel-body">
+          <div class="segmented" role="radiogroup" aria-label="화면 테마">
+            <label v-for="[value, label] in THEMES" :key="value"><input type="radio" name="theme" :value="value" v-model="theme" @change="applyTheme"><span>{{ label }}</span></label>
+          </div>
+          <p class="sub">자동은 기기 설정을 따라요. 이 기기에만 저장돼요.</p>
+        </div>
+      </section>
+      <section class="panel">
+        <h2 class="ph">정리</h2>
+        <div class="panel-body">
+          <p class="name">매일 새벽 3~5시에 새 대화를 분석해 내 말을 찾고, 비슷한 원칙끼리 묶어요.</p>
+          <p class="sub" v-if="data">분석 대기 {{ data.status.pending }}턴 · 반영된 근거 {{ data.status.evidence }}건</p>
+          <div><button class="btn primary" :disabled="busy" @click="extractNow">{{ busy ? "정리하는 중…" : "지금 정리" }}</button></div>
+          <p class="sub" v-if="result">{{ result }}</p>
+        </div>
+      </section>
+      <section class="panel">
+        <h2 class="ph">계정</h2>
+        <div class="panel-body">
+          <p class="sub">claude.ai와 Claude Code는 커넥터 주소 https://insight.smoh.dev/mcp 로 연결해요.</p>
+          <div><a class="btn" href="/logout">로그아웃</a></div>
+        </div>
+      </section>
+    </template>
+  </main>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/vue@3.5.43/dist/vue.global.prod.js"></script>
 <script>
   const DAY = 86_400_000;
   const UNSORTED = "아직 분류 전";
+  const TABS = [
+    { id: "principles", label: "원칙", icon: "M12 4l8 4.5-8 4.5-8-4.5zM4 13l8 4.5 8-4.5M4 17.5l8 4.5 8-4.5" },
+    { id: "recent", label: "최근", icon: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2" },
+    { id: "settings", label: "설정", icon: "M4 7h16M4 12h16M4 17h10" },
+  ];
+  const THEMES = [["auto", "자동"], ["light", "밝게"], ["dark", "어둡게"]];
   const day = (ms) => new Date(ms).toLocaleDateString("ko-KR", { month: "long", day: "numeric" });
-  async function get(url) {
-    const res = await fetch(url);
-    if (res.status === 401) location.href = "/login";
-    return res.json();
-  }
+  const savedTheme = () => {
+    try { return localStorage.getItem("theme") || "auto"; } catch { return "auto"; }
+  };
 
   Vue.createApp({
-    data: () => ({ view: "", arg: "", data: null, items: [], more: {}, q: "", busy: false, loading: false }),
+    data: () => ({
+      TABS, THEMES, UNSORTED,
+      screen: "principles", arg: "", data: null, items: [], open: {}, q: "", theme: savedTheme(),
+      loading: false, busy: false, result: "", error: "",
+    }),
     computed: {
+      tab() { return { principle: "principles", recent: "recent", settings: "settings" }[this.screen] ?? "principles"; },
       principles() { return this.data?.principles ?? []; },
-      // 원칙마다 대표 발언(main)과 AI 제안을 거절한 장면(rejection)
-      quotes() {
-        const byTheme = new Map();
-        for (const q of this.data?.quotes ?? []) byTheme.set(q.theme_id, { ...byTheme.get(q.theme_id), [q.rejection ? "rejection" : "main"]: q });
-        return byTheme;
-      },
-      // 축마다 되풀이된 원칙 둘은 인용과 함께, 나머지는 한 줄로, 한 번만 나온 것은 접어 둔다.
-      // 면접처럼 한 프로젝트 안에서 여러 번 나온 원칙도 되풀이로 본다. 가장 강한 원칙이 있는 축부터
+      // 축은 가장 강한 원칙이 있는 것부터. 원칙은 API가 프로젝트 수·근거 수 순으로 준다
       axes() {
         const groups = new Map();
         for (const p of this.principles) groups.set(p.axis || UNSORTED, [...(groups.get(p.axis || UNSORTED) ?? []), p]);
         return [...groups]
-          .map(([name, list]) => {
-            const lead = list.filter((p) => p.projects >= 3 || p.evidence >= 3).slice(0, 2);
-            const rest = list.filter((p) => !lead.includes(p) && (p.projects >= 2 || p.evidence >= 2));
-            return { name, lead, rest, minor: list.filter((p) => !lead.includes(p) && !rest.includes(p)), top: list[0], weight: list.reduce((n, p) => n + p.evidence, 0) };
-          })
-          .sort((a, b) => (a.name === UNSORTED) - (b.name === UNSORTED) || b.top.projects - a.top.projects || b.weight - a.weight);
-      },
-      fresh() {
-        const since = Date.now() - 14 * DAY;
-        return this.principles.filter((p) => p.first_at >= since).sort((a, b) => b.first_at - a.first_at);
-      },
-      freshAxes() {
-        const n = new Map();
-        for (const p of this.fresh) n.set(p.axis || UNSORTED, (n.get(p.axis || UNSORTED) ?? 0) + 1);
-        return [...n].sort((a, b) => b[1] - a[1]).map(([axis, count]) => `${axis} ${count}`).join(" · ");
+          .map(([name, list]) => ({ name, list }))
+          .sort((a, b) => (a.name === UNSORTED) - (b.name === UNSORTED) || b.list[0].projects - a.list[0].projects || b.list.length - a.list.length);
       },
       current() { return this.principles.find((p) => p.id === Number(this.arg)); },
+      // 한 메시지에서 근거가 여러 개 뽑혀도 한 줄로 보인다(원칙의 '근거 N건'과 같은 셈). 말은 가장 긴 인용을 쓴다
+      rows() {
+        const rows = new Map();
+        for (const i of this.items) {
+          const key = i.prompt_id ?? `i${i.id}`;
+          const row = rows.get(key) ?? { key, items: [], at: i.at, project: i.project, seed: "", ai_proposal: null, themes: new Map() };
+          row.items.push(i);
+          if ((i.seed || i.statement).length > row.seed.length) row.seed = i.seed || i.statement;
+          row.ai_proposal ??= i.ai_proposal;
+          if (i.theme) row.themes.set(i.theme_id, i.theme);
+          rows.set(key, row);
+        }
+        return [...rows.values()].map((r) => ({ ...r, themes: [...r.themes], off: r.items.every((i) => i.status === "dismissed") }));
+      },
+      days() {
+        const byDay = new Map();
+        for (const r of this.rows) byDay.set(day(r.at), [...(byDay.get(day(r.at)) ?? []), r]);
+        return [...byDay].map(([label, rows]) => ({ label, rows }));
+      },
     },
     methods: {
       day,
-      meta(p) {
+      isNew(p) { return p.first_at >= Date.now() - 14 * DAY; },
+      span(p) {
         const [from, to] = [day(p.first_at), day(p.last_at)];
-        return `${p.projects}개 프로젝트 · 근거 ${p.evidence}건 · ${from === to ? from : `${from}부터 ${to}까지`}`;
+        return from === to ? from : `${from} ~ ${to}`;
       },
-      shown(p) {
-        const { main, rejection } = this.quotes.get(p.id) ?? {};
-        return [main, rejection?.seed !== main?.seed && rejection].filter(Boolean);
-      },
-      caption(i) {
-        return [i.ai_proposal && `AI 제안: ${i.ai_proposal}`, i.project || "claude.ai", day(i.at)].filter(Boolean).join(" · ");
+      async get(url) {
+        const res = await fetch(url);
+        if (res.status === 401) location.href = "/login";
+        if (!res.ok) throw new Error(String(res.status));
+        return res.json();
       },
       async route() {
-        const [, view = "", arg = ""] = location.hash.split("/");
-        Object.assign(this, { view, arg: decodeURIComponent(arg), items: [], loading: true });
+        const [view = "", ...rest] = location.hash.slice(1).split("/");
+        const screen = { p: "principle", recent: "recent", s: "recent", settings: "settings" }[view] ?? "principles";
+        Object.assign(this, { screen, arg: decodeURIComponent(rest.join("/")), items: [], loading: true, error: "" });
         this.q = view === "s" ? this.arg : "";
-        if (!this.data || view === "") this.data = await get("/api/principles");
-        if (view === "p") this.items = await get("/api/insights?theme=" + Number(this.arg));
-        if (view === "s") this.items = await get("/api/insights?q=" + encodeURIComponent(this.arg));
-        this.loading = false;
         scrollTo(0, 0);
+        try {
+          if (!this.data || screen === "principles") this.data = await this.get("/api/principles");
+          if (screen === "principle") this.items = await this.get("/api/insights?theme=" + Number(this.arg));
+          if (screen === "recent") this.items = await this.get("/api/insights" + (this.arg ? "?q=" + encodeURIComponent(this.arg) : ""));
+        } catch {
+          this.error = "불러오지 못했어요. 잠시 뒤 다시 열어 주세요.";
+        } finally {
+          this.loading = false;
+        }
       },
-      search() {
-        location.hash = this.q.trim() ? "#/s/" + encodeURIComponent(this.q.trim()) : "#/";
-      },
-      // 아님: 지우지 않고 숨긴다. 원칙의 강도 계산에서도 빠진다
-      async toggle(i) {
-        const status = i.status === "dismissed" ? "confirmed" : "dismissed";
-        await fetch("/api/insights/" + i.id, {
-          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }),
-        });
-        i.status = status;
+      search() { location.hash = this.q.trim() ? "#s/" + encodeURIComponent(this.q.trim()) : "#recent"; },
+      // 아님: 지우지 않고 숨긴다. 원칙의 강도 계산에서도 빠진다. 한 줄에 묶인 근거는 함께
+      async toggle(row) {
+        const status = row.off ? "confirmed" : "dismissed";
+        for (const i of row.items) {
+          const res = await fetch("/api/insights/" + i.id, {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }),
+          });
+          if (!res.ok) return void (this.error = "바꾸지 못했어요. 다시 눌러 주세요.");
+          i.status = status;
+        }
       },
       async extractNow() {
         this.busy = true;
+        this.result = "";
         try {
-          await fetch("/api/extract", { method: "POST" });
-          this.data = await get("/api/principles");
+          const res = await fetch("/api/extract", { method: "POST" });
+          if (!res.ok) throw new Error(String(res.status));
+          const r = await res.json();
+          this.result = `새 근거 ${r.saved}건 · 새 원칙 ${r.placed}개 · 합친 원칙 ${r.merged}개`;
+          this.data = await this.get("/api/principles");
+        } catch {
+          this.result = "정리하지 못했어요. 잠시 뒤 다시 눌러 주세요.";
         } finally {
           this.busy = false;
         }
+      },
+      applyTheme() {
+        const root = document.documentElement;
+        try {
+          if (this.theme === "auto") localStorage.removeItem("theme");
+          else localStorage.setItem("theme", this.theme);
+        } catch {}
+        if (this.theme === "auto") delete root.dataset.theme;
+        else root.dataset.theme = this.theme;
+        document.querySelector('meta[name="theme-color"]').content = getComputedStyle(root).getPropertyValue("--page").trim();
       },
     },
     mounted() {
       addEventListener("hashchange", () => this.route());
       this.route();
+      this.applyTheme();
     },
   }).mount("#app");
 </script>
