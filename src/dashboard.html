@@ -65,10 +65,10 @@
         <p class="meta">{{ meta(p) }}</p>
         <blockquote v-for="s in shown(p)" :key="s.seed">{{ s.seed }}<small>{{ caption(s) }}</small></blockquote>
       </div>
-      <a v-for="p in a.rest" :key="p.id" class="line" :href="'#/p/' + p.id"><span>{{ p.statement }}</span><small>{{ p.projects }}개 프로젝트</small></a>
+      <a v-for="p in a.rest" :key="p.id" class="line" :href="'#/p/' + p.id"><span>{{ p.statement }}</span><small>{{ p.projects >= 2 ? `${p.projects}개 프로젝트` : `근거 ${p.evidence}건` }}</small></a>
       <template v-if="a.minor.length">
         <button class="link more" @click="more[a.name] = !more[a.name]">
-          한 프로젝트에서만 나온 것 {{ a.minor.length }}개 {{ more[a.name] ? "접기" : "보기" }}
+          한 번만 나온 것 {{ a.minor.length }}개 {{ more[a.name] ? "접기" : "보기" }}
         </button>
         <template v-if="more[a.name]">
           <a v-for="p in a.minor" :key="p.id" class="line" :href="'#/p/' + p.id"><span>{{ p.statement }}</span><small>{{ day(p.last_at) }}</small></a>
@@ -131,21 +131,18 @@
         for (const q of this.data?.quotes ?? []) byTheme.set(q.theme_id, { ...byTheme.get(q.theme_id), [q.rejection ? "rejection" : "main"]: q });
         return byTheme;
       },
-      // 축마다 3개 이상 프로젝트에서 나온 원칙 둘은 인용과 함께, 나머지는 한 줄로, 한 프로젝트에서만 나온 것은 접어 둔다
+      // 축마다 되풀이된 원칙 둘은 인용과 함께, 나머지는 한 줄로, 한 번만 나온 것은 접어 둔다.
+      // 면접처럼 한 프로젝트 안에서 여러 번 나온 원칙도 되풀이로 본다. 가장 강한 원칙이 있는 축부터
       axes() {
         const groups = new Map();
         for (const p of this.principles) groups.set(p.axis || UNSORTED, [...(groups.get(p.axis || UNSORTED) ?? []), p]);
         return [...groups]
           .map(([name, list]) => {
-            const lead = list.filter((p) => p.projects >= 3).slice(0, 2);
-            return {
-              name, lead,
-              rest: list.filter((p) => !lead.includes(p) && p.projects >= 2),
-              minor: list.filter((p) => p.projects < 2),
-              weight: list.reduce((n, p) => n + p.evidence, 0),
-            };
+            const lead = list.filter((p) => p.projects >= 3 || p.evidence >= 3).slice(0, 2);
+            const rest = list.filter((p) => !lead.includes(p) && (p.projects >= 2 || p.evidence >= 2));
+            return { name, lead, rest, minor: list.filter((p) => !lead.includes(p) && !rest.includes(p)), top: list[0], weight: list.reduce((n, p) => n + p.evidence, 0) };
           })
-          .sort((a, b) => (a.name === UNSORTED) - (b.name === UNSORTED) || b.weight - a.weight);
+          .sort((a, b) => (a.name === UNSORTED) - (b.name === UNSORTED) || b.top.projects - a.top.projects || b.weight - a.weight);
       },
       fresh() {
         const since = Date.now() - 14 * DAY;
