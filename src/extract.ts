@@ -228,8 +228,8 @@ async function extractBatch(env: Env, client: Anthropic, batch: Pair[]) {
     writes.push(
       db
         .prepare(
-          `INSERT INTO insights (source, prompt_id, session_id, project, kind, reaction, statement, seed, expression, ai_proposal, reason, theme_id, confidence, at)
-           VALUES ('code', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO insights (source, prompt_id, session_id, project, kind, reaction, statement, seed, expression, ai_proposal, reason, theme_id, confidence, status, at)
+           VALUES ('code', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?)`,
         )
         .bind(i.p.prompt_id, i.p.session_id, base(i.p.cwd), i.kind, i.reaction, i.statement, i.seed, i.expression, i.ai_proposal, i.reason, themeId, i.confidence, i.p.at),
     );
@@ -241,4 +241,90 @@ async function extractBatch(env: Env, client: Anthropic, batch: Pair[]) {
   );
   await db.batch(writes);
   return kept.length;
+}
+
+// ── 정리: 새 테마를 축 아래 원칙으로 묶는다 ─────────────────────
+
+const ORGANIZE = `너는 한 사람('나')이 AI와 일하며 드러낸 원칙 목록을 정리한다.
+
+입력
+- <settled>: 이미 정리된 원칙. "[축] id. 문장 (프로젝트 수)". 고치지 않는다.
+- <new>: 아직 정리되지 않은 테마. "id. 문장 (프로젝트 수)"
+
+<new>의 테마마다 placement를 하나씩 낸다.
+- 같은 생각이면 합친다: merge_into에 그 원칙이나 다른 새 테마의 id. 같은 생각이란 한 문장으로 합쳐도 어느 쪽 뜻도 잃지 않는 것이다. 주제만 비슷하면 합치지 않는다.
+- 새 테마끼리 합칠 때는 남길 쪽 하나를 정해 merge_into를 null로 두고, 나머지가 그 id를 가리킨다.
+- 남길 때: axis에 축 이름. <settled>의 축이 맞으면 그 이름을 그대로 쓰고, 없으면 새 축을 짧은 명사구로 짓는다(예: "AI와 일하는 방식", "필요한 것만"). 축은 모두 7개를 넘지 않는다.
+- statement: 남길 쪽 문장이 합쳐진 생각까지 담도록 다듬을 때만 쓴다. 원래 말투대로 짧은 한 줄. 아니면 null.
+- 합쳐지는 쪽의 axis에는 남길 쪽과 같은 축을 적는다.`;
+
+export const Placement = z.object({
+  theme_id: z.number().int(),
+  axis: z.string(),
+  merge_into: z.number().int().nullable(),
+  statement: z.string().nullable(),
+});
+export type Placement = z.infer<typeof Placement>;
+const Placements = z.object({ placements: z.array(Placement) });
+
+/** 정리된 원칙은 건드리지 않는다. 합칠 대상이 사라지거나 없는 id면 합치지 않고 남긴다. */
+export function planPlacements(placements: Placement[], fresh: Set<number>, settled: Set<number>) {
+  const byId = new Map(placements.filter((p) => fresh.has(p.theme_id)).map((p) => [p.theme_id, p]));
+  const kept = new Set([...byId.values()].filter((p) => p.merge_into == null).map((p) => p.theme_id));
+  const keep: { id: number; axis: string; statement: string | null }[] = [];
+  const merge: { from: number; to: number }[] = [];
+  for (const p of byId.values()) {
+    const to = p.merge_into;
+    if (to != null && to !== p.theme_id && (settled.has(to) || kept.has(to))) merge.push({ from: p.theme_id, to });
+    else if (p.axis.trim()) keep.push({ id: p.theme_id, axis: p.axis.trim(), statement: to == null ? p.statement : null });
+  }
+  return { keep, merge };
+}
+
+export async function organize(env: Env) {
+  const stats = { placed: 0, merged: 0 };
+  if (!env.ANTHROPIC_API_KEY) return stats;
+  const db = env.DB;
+  const { results: themes } = await db
+    .prepare(
+      `SELECT t.id, t.statement, t.axis, COUNT(DISTINCT coalesce(i.project, 'claude.ai')) AS projects
+       FROM themes t LEFT JOIN insights i ON i.theme_id = t.id AND i.status != 'dismissed'
+       GROUP BY t.id ORDER BY t.axis, projects DESC`,
+    )
+    .all<{ id: number; statement: string; axis: string | null; projects: number }>();
+  const fresh = themes.filter((t) => !t.axis);
+  if (!fresh.length) return stats;
+  const settled = themes.filter((t) => t.axis);
+  const line = (t: (typeof themes)[number]) => `${t.id}. ${t.statement} (프로젝트 ${t.projects})`;
+
+  const res = await new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }).beta.messages.parse({
+    model: env.MODEL,
+    max_tokens: 20000, // ponytail: 비스트리밍 상한(약 21k) 아래. 새 테마가 수백 개 쌓이면 나눠 보낸다
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    output_config: { effort: "medium", format: betaZodOutputFormat(Placements) },
+    system: ORGANIZE,
+    messages: [
+      {
+        role: "user",
+        content: `<settled>\n${settled.map((t) => `[${t.axis}] ${line(t)}`).join("\n") || "(없음)"}\n</settled>\n\n<new>\n${fresh.map(line).join("\n")}\n</new>`,
+      },
+    ],
+  });
+  if (res.stop_reason !== "end_turn" || !res.parsed_output) console.warn("organize: no usable output", res.stop_reason);
+  const plan = planPlacements(res.parsed_output?.placements ?? [], new Set(fresh.map((t) => t.id)), new Set(settled.map((t) => t.id)));
+
+  // 합친 테마를 먼저 지워야, 남긴 쪽 문장을 그 테마 문장으로 다듬어도 UNIQUE에 걸리지 않는다
+  const writes = [
+    ...plan.keep.map((k) => db.prepare("UPDATE themes SET axis = ? WHERE id = ?").bind(k.axis, k.id)),
+    ...plan.merge.flatMap((m) => [
+      db.prepare("UPDATE insights SET theme_id = ? WHERE theme_id = ?").bind(m.to, m.from),
+      db.prepare("DELETE FROM themes WHERE id = ?").bind(m.from),
+    ]),
+    ...plan.keep
+      .filter((k) => k.statement?.trim())
+      .map((k) => db.prepare("UPDATE OR IGNORE themes SET statement = ? WHERE id = ?").bind(k.statement!.trim(), k.id)),
+  ];
+  if (writes.length) await db.batch(writes);
+  return { placed: plan.keep.length, merged: plan.merge.length };
 }

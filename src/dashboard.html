@@ -4,89 +4,117 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Insight</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#fafaf9; --fg:#1c1917; --muted:#78716c; --line:#e7e5e4; --card:#fff; --accent:#4338ca; --soft:#eef2ff; }
+  :root { --bg:#fafaf9; --fg:#1c1917; --sub:#57534e; --muted:#a8a29e; --line:#e7e5e4; --rule:#d6d3d1;
+          --sans:-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", system-ui, sans-serif; --serif:"Noto Serif KR", "AppleMyungjo", serif; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#0c0a09; --fg:#f5f5f4; --muted:#a8a29e; --line:#292524; --card:#1c1917; --accent:#a5b4fc; --soft:#1e1b4b; }
+    :root { --bg:#0c0a09; --fg:#f5f5f4; --sub:#a8a29e; --muted:#78716c; --line:#292524; --rule:#57534e; }
   }
   * { box-sizing: border-box; }
   [v-cloak] { display: none; }
-  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", system-ui, sans-serif; }
-  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
-  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-  h1 { font-size: 20px; margin: 0; }
-  a { color: var(--muted); }
-  nav { display: flex; gap: 6px; margin: 16px 0 20px; overflow-x: auto; }
-  nav button { font: inherit; white-space: nowrap; border: 1px solid var(--line); background: var(--card); color: var(--fg); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
-  nav button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
-  .stmt { font-weight: 600; }
-  .meta { color: var(--muted); font-size: 13px; }
-  .tag { display: inline-block; background: var(--soft); color: var(--accent); border-radius: 6px; padding: 0 6px; font-size: 12px; margin-right: 4px; }
-  .q { border-left: 3px solid var(--line); padding-left: 10px; margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-  .q b { display: block; color: var(--muted); font-size: 12px; font-weight: 500; }
-  .actions { margin-top: 10px; display: flex; gap: 6px; }
-  .actions button { font: inherit; font-size: 13px; border: 1px solid var(--line); background: transparent; color: var(--fg); border-radius: 8px; padding: 2px 10px; cursor: pointer; }
-  .theme { cursor: pointer; }
-  .empty { color: var(--muted); text-align: center; padding: 48px 0; }
-  button.link { font: inherit; border: 0; background: none; color: var(--accent); cursor: pointer; padding: 0; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.7 var(--sans); word-break: keep-all; -webkit-font-smoothing: antialiased; }
+  main { max-width: 680px; margin: 0 auto; padding: 24px 16px 72px; }
+  a { color: inherit; text-decoration: none; }
+  a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  button.link { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  .bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; font-size: 13px; color: var(--muted); }
+  .bar input { font: inherit; color: var(--fg); background: none; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 2px 0; width: 10rem; outline: none; }
+  .bar input:focus { border-color: var(--sub); }
+  h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.35; margin: 32px 0 6px; }
+  .lede { color: var(--sub); font-size: 14px; margin: 0; }
+  section { border-top: 1px solid var(--line); margin-top: 28px; padding-top: 20px; }
+  .axis { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
+  .pr { display: block; font-size: 18px; font-weight: 600; line-height: 1.5; letter-spacing: -0.01em; }
+  .meta { font-size: 13px; color: var(--sub); margin: 2px 0 12px; }
+  .lead { margin-bottom: 22px; }
+  blockquote { font-family: var(--serif); font-size: 15.5px; line-height: 1.8; margin: 0 0 12px; padding-left: 14px; border-left: 2px solid var(--rule); white-space: pre-wrap; overflow-wrap: anywhere; }
+  blockquote small { display: block; font: 12px/1.6 var(--sans); color: var(--muted); margin-top: 4px; white-space: normal; }
+  .line { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 4px 0; }
+  .line small { flex: none; font-size: 13px; color: var(--muted); }
+  .more { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .back { font-size: 13px; color: var(--sub); }
+  .ev { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 16px; }
+  .ev.off blockquote { color: var(--muted); }
+  .note { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; font-size: 13px; color: var(--sub); margin: 0 0 4px; }
+  .note button { flex: none; color: var(--muted); }
+  .note button:hover { color: var(--fg); }
+  footer { border-top: 1px solid var(--line); margin-top: 40px; padding-top: 12px; font-size: 12px; color: var(--muted); }
+  footer a, footer button.link { color: var(--sub); }
 </style>
 </head>
 <body>
 <main id="app" v-cloak>
-  <header>
-    <h1>Insight</h1>
-    <span class="meta">
-      추출 대기 {{ counts.pending ?? 0 }} ·
-      <button class="link" :disabled="busy" @click="extractNow">{{ busy ? "추출 중…" : "지금 추출" }}</button> ·
-      <a href="/logout">로그아웃</a>
-    </span>
-  </header>
+  <div class="bar">
+    <a href="#/">Insight</a>
+    <form @submit.prevent="search"><input v-model="q" type="search" placeholder="근거 검색" aria-label="근거 검색"></form>
+  </div>
 
-  <nav>
-    <button v-for="t in tabs" :key="t.id" :class="{ on: tab === t.id }" @click="go(t.id)">
-      {{ t.label }}<span v-if="counts[t.id]"> {{ counts[t.id] }}</span>
-    </button>
-  </nav>
+  <template v-if="view === ''">
+    <h1>내가 일하는 방식</h1>
+    <p class="lede" v-if="!data">불러오는 중…</p>
+    <p class="lede" v-else-if="principles.length">여러 프로젝트에서 되풀이한 말을 원칙으로 묶었습니다. 인용은 모두 내가 실제로 한 말입니다.</p>
+    <p class="lede" v-else>아직 되풀이된 원칙이 없습니다. 대화가 쌓이면 새벽마다 정리됩니다.</p>
 
-  <section v-if="tab === 'themes'">
-    <div v-for="t in themes" :key="t.id" class="card theme" @click="openTheme(t)">
-      <div class="stmt">{{ t.statement }}</div>
-      <div class="meta">{{ t.count }}번 · 세션 {{ t.sessions }}개 · 최근 {{ day(t.last_at) }}</div>
-    </div>
-    <p v-if="!themes.length" class="empty">아직 반복되는 생각이 없습니다.</p>
-  </section>
-
-  <section v-else>
-    <p v-if="theme" class="meta">테마 “{{ theme.statement }}” · <a href="#" @click.prevent="go('themes')">돌아가기</a></p>
-    <article v-for="i in items" :key="i.id" class="card">
-      <div class="stmt">{{ i.statement }}</div>
-      <div class="meta">
-        <span class="tag">{{ KIND[i.kind] ?? i.kind }} · {{ REACTION[i.reaction] ?? i.reaction }}</span>
-        {{ i.source === 'mcp' ? '대화 중 OK' : i.project }} · {{ day(i.at) }}<span v-if="i.theme"> · {{ i.theme }}</span>
+    <section v-for="a in axes" :key="a.name">
+      <p class="axis">{{ a.name }}</p>
+      <div v-for="p in a.lead" :key="p.id" class="lead">
+        <a class="pr" :href="'#/p/' + p.id">{{ p.statement }}</a>
+        <p class="meta">{{ meta(p) }}</p>
+        <blockquote v-for="s in shown(p)" :key="s.seed">{{ s.seed }}<small>{{ caption(s) }}</small></blockquote>
       </div>
-      <div v-if="i.ai_proposal" class="q"><b>AI 제안</b>{{ i.ai_proposal }}</div>
-      <div v-if="i.seed" class="q"><b>내 말</b>{{ i.seed }}</div>
-      <div v-if="i.expression" class="q"><b>AI 표현</b>{{ i.expression }}</div>
-      <div v-if="i.reason" class="q"><b>이유</b>{{ i.reason }}</div>
-      <div v-if="i.context" class="q"><b>맥락</b>{{ i.context }}</div>
-      <div class="actions">
-        <button v-if="i.status !== 'confirmed'" @click="set(i, 'confirmed')">확정</button>
-        <button v-if="i.status !== 'dismissed'" @click="set(i, 'dismissed')">아님</button>
-        <button v-if="i.status !== 'candidate'" @click="set(i, 'candidate')">후보로</button>
-      </div>
+      <a v-for="p in a.rest" :key="p.id" class="line" :href="'#/p/' + p.id"><span>{{ p.statement }}</span><small>{{ p.projects }}개 프로젝트</small></a>
+      <template v-if="a.minor.length">
+        <button class="link more" @click="more[a.name] = !more[a.name]">
+          한 프로젝트에서만 나온 것 {{ a.minor.length }}개 {{ more[a.name] ? "접기" : "보기" }}
+        </button>
+        <template v-if="more[a.name]">
+          <a v-for="p in a.minor" :key="p.id" class="line" :href="'#/p/' + p.id"><span>{{ p.statement }}</span><small>{{ day(p.last_at) }}</small></a>
+        </template>
+      </template>
+    </section>
+
+    <section v-if="fresh.length">
+      <p class="axis">요즘 새로 보이는 것</p>
+      <p class="pr">최근 2주 사이 처음 나온 원칙 {{ fresh.length }}개</p>
+      <p class="meta">{{ freshAxes }}</p>
+      <a v-for="p in fresh.slice(0, 8)" :key="p.id" class="line" :href="'#/p/' + p.id"><span>{{ p.statement }}</span><small>{{ day(p.first_at) }}</small></a>
+    </section>
+  </template>
+
+  <template v-else>
+    <p style="margin: 28px 0 0"><a class="back" href="#/">← 내가 일하는 방식</a></p>
+    <template v-if="view === 'p'">
+      <h1>{{ current?.statement ?? "합쳐졌거나 없는 원칙" }}</h1>
+      <p class="meta" v-if="current">{{ current.axis || "아직 분류 전" }} · {{ meta(current) }}</p>
+    </template>
+    <h1 v-else>‘{{ arg }}’ {{ loading ? "찾는 중…" : `근거 ${items.length}건` }}</h1>
+
+    <article v-for="i in items" :key="i.id" class="ev" :class="{ off: i.status === 'dismissed' }">
+      <blockquote>{{ i.seed || i.statement }}<small>{{ caption(i) }}</small></blockquote>
+      <p class="note">
+        <span>{{ i.statement }}</span>
+        <button class="link" @click="toggle(i)">{{ i.status === "dismissed" ? "되돌리기" : "아님" }}</button>
+      </p>
+      <p class="note" v-if="view === 's' && i.theme"><a :href="'#/p/' + i.theme_id">원칙 · {{ i.theme }}</a></p>
     </article>
-    <p v-if="!items.length" class="empty">비어 있습니다.</p>
-  </section>
+    <p class="lede" v-if="!loading && !items.length" style="margin-top: 16px">근거가 없습니다.</p>
+  </template>
+
+  <footer v-if="data">
+    매일 새벽 정리 · 반영된 근거 {{ data.status.evidence }}건 · 분석 대기 {{ data.status.pending }}턴 ·
+    <button class="link" :disabled="busy" @click="extractNow">{{ busy ? "정리 중…" : "지금 추출" }}</button> ·
+    <a href="/logout">로그아웃</a>
+  </footer>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/vue@3.5.43/dist/vue.global.prod.js"></script>
 <script>
-  const KIND = { value: "가치", principle: "원칙", preference: "선호", belief: "신념", rejection: "거절" };
-  const REACTION = {
-    spontaneous: "먼저 말함", agree: "동의", disagree: "반박", refine: "보완", articulated: "정리됨",
-    interrupt: "중단", tool_denied: "도구 거절", choice: "다른 선택",
-  };
+  const DAY = 86_400_000;
+  const UNSORTED = "아직 분류 전";
+  const day = (ms) => new Date(ms).toLocaleDateString("ko-KR", { month: "long", day: "numeric" });
   async function get(url) {
     const res = await fetch(url);
     if (res.status === 401) location.href = "/login";
@@ -94,41 +122,90 @@
   }
 
   Vue.createApp({
-    data: () => ({
-      KIND, REACTION,
-      tab: "candidate", theme: null, items: [], themes: [], counts: {}, busy: false,
-      tabs: [
-        { id: "candidate", label: "후보" },
-        { id: "confirmed", label: "확정" },
-        { id: "rejection", label: "AI 제안 → 내 거절" },
-        { id: "themes", label: "평소 가치관" },
-      ],
-    }),
+    data: () => ({ view: "", arg: "", data: null, items: [], more: {}, q: "", busy: false, loading: false }),
+    computed: {
+      principles() { return this.data?.principles ?? []; },
+      // 원칙마다 대표 발언(main)과 AI 제안을 거절한 장면(rejection)
+      quotes() {
+        const byTheme = new Map();
+        for (const q of this.data?.quotes ?? []) byTheme.set(q.theme_id, { ...byTheme.get(q.theme_id), [q.rejection ? "rejection" : "main"]: q });
+        return byTheme;
+      },
+      // 축마다 3개 이상 프로젝트에서 나온 원칙 둘은 인용과 함께, 나머지는 한 줄로, 한 프로젝트에서만 나온 것은 접어 둔다
+      axes() {
+        const groups = new Map();
+        for (const p of this.principles) groups.set(p.axis || UNSORTED, [...(groups.get(p.axis || UNSORTED) ?? []), p]);
+        return [...groups]
+          .map(([name, list]) => {
+            const lead = list.filter((p) => p.projects >= 3).slice(0, 2);
+            return {
+              name, lead,
+              rest: list.filter((p) => !lead.includes(p) && p.projects >= 2),
+              minor: list.filter((p) => p.projects < 2),
+              weight: list.reduce((n, p) => n + p.evidence, 0),
+            };
+          })
+          .sort((a, b) => (a.name === UNSORTED) - (b.name === UNSORTED) || b.weight - a.weight);
+      },
+      fresh() {
+        const since = Date.now() - 14 * DAY;
+        return this.principles.filter((p) => p.first_at >= since).sort((a, b) => b.first_at - a.first_at);
+      },
+      freshAxes() {
+        const n = new Map();
+        for (const p of this.fresh) n.set(p.axis || UNSORTED, (n.get(p.axis || UNSORTED) ?? 0) + 1);
+        return [...n].sort((a, b) => b[1] - a[1]).map(([axis, count]) => `${axis} ${count}`).join(" · ");
+      },
+      current() { return this.principles.find((p) => p.id === Number(this.arg)); },
+    },
     methods: {
-      async load() {
-        this.counts = await get("/api/counts");
-        if (this.tab === "themes") { this.themes = await get("/api/themes"); return; }
-        const query = this.theme ? "theme=" + this.theme.id : this.tab === "rejection" ? "kind=rejection" : "status=" + this.tab;
-        this.items = await get("/api/insights?" + query);
+      day,
+      meta(p) {
+        const [from, to] = [day(p.first_at), day(p.last_at)];
+        return `${p.projects}개 프로젝트 · 근거 ${p.evidence}건 · ${from === to ? from : `${from}부터 ${to}까지`}`;
       },
-      go(tab) { this.tab = tab; this.theme = null; this.load(); },
-      async extractNow() {
-        this.busy = true;
-        try { await fetch("/api/extract", { method: "POST" }); } finally { this.busy = false; }
-        this.load();
+      shown(p) {
+        const { main, rejection } = this.quotes.get(p.id) ?? {};
+        return [main, rejection?.seed !== main?.seed && rejection].filter(Boolean);
       },
-      openTheme(t) { this.theme = t; this.tab = "theme"; this.load(); },
-      async set(item, status) {
-        await fetch("/api/insights/" + item.id, {
+      caption(i) {
+        return [i.ai_proposal && `AI 제안: ${i.ai_proposal}`, i.project || "claude.ai", day(i.at)].filter(Boolean).join(" · ");
+      },
+      async route() {
+        const [, view = "", arg = ""] = location.hash.split("/");
+        Object.assign(this, { view, arg: decodeURIComponent(arg), items: [], loading: true });
+        this.q = view === "s" ? this.arg : "";
+        if (!this.data || view === "") this.data = await get("/api/principles");
+        if (view === "p") this.items = await get("/api/insights?theme=" + Number(this.arg));
+        if (view === "s") this.items = await get("/api/insights?q=" + encodeURIComponent(this.arg));
+        this.loading = false;
+        scrollTo(0, 0);
+      },
+      search() {
+        location.hash = this.q.trim() ? "#/s/" + encodeURIComponent(this.q.trim()) : "#/";
+      },
+      // 아님: 지우지 않고 숨긴다. 원칙의 강도 계산에서도 빠진다
+      async toggle(i) {
+        const status = i.status === "dismissed" ? "confirmed" : "dismissed";
+        await fetch("/api/insights/" + i.id, {
           method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }),
         });
-        item.status = status;
-        if (this.tab === "candidate" || this.tab === "confirmed") this.items = this.items.filter((i) => i.status === this.tab);
-        this.counts = await get("/api/counts");
+        i.status = status;
       },
-      day(ms) { return ms ? new Date(ms).toLocaleDateString("ko-KR", { month: "short", day: "numeric" }) : ""; },
+      async extractNow() {
+        this.busy = true;
+        try {
+          await fetch("/api/extract", { method: "POST" });
+          this.data = await get("/api/principles");
+        } finally {
+          this.busy = false;
+        }
+      },
     },
-    mounted() { this.load(); },
+    mounted() {
+      addEventListener("hashchange", () => this.route());
+      this.route();
+    },
   }).mount("#app");
 </script>
 </body>

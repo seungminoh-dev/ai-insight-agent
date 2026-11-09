@@ -11,7 +11,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { createMcpHandler } from "agents/mcp/server";
 import { z } from "zod";
 import dashboard from "./dashboard.html";
-import { extract, redact, resolveTheme, splitPrompt } from "./extract";
+import { extract, organize, redact, resolveTheme, splitPrompt } from "./extract";
 
 const SESSION = "__Host-insight_session";
 const STATE = "__Host-insight_state";
@@ -97,10 +97,13 @@ async function route(req: Request, env: Env): Promise<Response> {
         return login(url, env);
       case "/logout":
         return redirect("/", { "Set-Cookie": `${SESSION}=; ${COOKIE}; Max-Age=0` });
-      case "/api/extract": // 대시보드 버튼 또는 훅 토큰: 결과 수만 돌려준다
+      case "/api/extract": {
+        // 대시보드 버튼 또는 훅 토큰: 추출하고 새 테마까지 정리한 뒤 수만 돌려준다
         if (req.method !== "POST" || !(isIngest(req, env) || (await signedIn(req, env))))
           return new Response("unauthorized", { status: 401 });
-        return Response.json(await extract(env, { force: true, session: url.searchParams.get("session") ?? undefined }));
+        const extracted = await extract(env, { force: true, session: url.searchParams.get("session") ?? undefined });
+        return Response.json({ ...extracted, ...(await organize(env)) });
+      }
     }
     if (!(await signedIn(req, env)))
       return url.pathname.startsWith("/api/") ? new Response("unauthorized", { status: 401 }) : redirect("/login");
@@ -237,38 +240,49 @@ async function signedIn(req: Request, env: Env) {
 
 async function api(req: Request, env: Env, url: URL) {
   const q = url.searchParams;
+  if (url.pathname === "/api/principles") {
+    // 강도는 후보 수가 아니라 몇 개 프로젝트·몇 번의 발언에서 나왔는지로 센다 (한 메시지에서 여러 개 뽑혀도 한 번)
+    const [principles, quotes, status] = await env.DB.batch([
+      env.DB.prepare(
+        `SELECT t.id, t.statement, t.axis,
+                COUNT(DISTINCT coalesce(i.prompt_id, i.id)) AS evidence,
+                COUNT(DISTINCT coalesce(i.project, 'claude.ai')) AS projects,
+                MIN(i.at) AS first_at, MAX(i.at) AS last_at
+         FROM themes t JOIN insights i ON i.theme_id = t.id AND i.status != 'dismissed'
+         GROUP BY t.id ORDER BY projects DESC, evidence DESC, last_at DESC`,
+      ),
+      // 원칙마다 대표 발언 하나와 AI 제안을 거절한 장면 하나: 너무 짧거나 긴 말은 뒤로, 추출 때 확신이 높고 원칙을 직접 말한 것을 앞으로
+      env.DB.prepare(
+        `SELECT theme_id, seed, project, at, ai_proposal, kind = 'rejection' AS rejection FROM (
+           SELECT i.*, ROW_NUMBER() OVER (PARTITION BY theme_id, kind = 'rejection'
+                                          ORDER BY length(seed) BETWEEN 25 AND 160 DESC, coalesce(confidence, 0.8) DESC,
+                                                   kind IN ('principle', 'value', 'belief') DESC, at DESC) AS rn
+           FROM insights i WHERE theme_id IS NOT NULL AND status != 'dismissed' AND seed != '')
+         WHERE rn = 1`,
+      ),
+      env.DB.prepare(
+        `SELECT (SELECT COUNT(*) FROM insights WHERE status != 'dismissed') AS evidence,
+                (SELECT COUNT(*) FROM pairs WHERE done = 0) AS pending`,
+      ),
+    ]);
+    return Response.json({ principles: principles.results, quotes: quotes.results, status: status.results[0] });
+  }
   if (url.pathname === "/api/insights" && req.method === "GET") {
+    const text = q.get("q")?.trim();
     const { results } = await env.DB.prepare(
       `SELECT i.*, t.statement AS theme FROM insights i LEFT JOIN themes t ON t.id = i.theme_id
-       WHERE ((?1 IS NULL AND i.status != 'dismissed') OR i.status = ?1)
-         AND (?2 IS NULL OR i.kind = ?2) AND (?3 IS NULL OR i.theme_id = ?3)
+       WHERE i.status != 'dismissed' AND (?1 IS NULL OR i.theme_id = ?1)
+         AND (?2 IS NULL OR i.seed LIKE ?2 OR i.statement LIKE ?2 OR i.ai_proposal LIKE ?2)
        ORDER BY i.at DESC LIMIT 300`,
     )
-      .bind(q.get("status"), q.get("kind"), q.has("theme") ? Number(q.get("theme")) : null)
+      .bind(q.has("theme") ? Number(q.get("theme")) : null, text ? `%${text}%` : null)
       .all();
     return Response.json(results);
-  }
-  if (url.pathname === "/api/themes") {
-    const { results } = await env.DB.prepare(
-      `SELECT t.id, t.statement, COUNT(i.id) AS count, COUNT(DISTINCT i.session_id) AS sessions, MAX(i.at) AS last_at
-       FROM themes t JOIN insights i ON i.theme_id = t.id AND i.status != 'dismissed'
-       GROUP BY t.id ORDER BY count DESC, last_at DESC`,
-    ).all();
-    return Response.json(results);
-  }
-  if (url.pathname === "/api/counts") {
-    const counts = await env.DB.prepare(
-      `SELECT SUM(status = 'candidate') AS candidate, SUM(status = 'confirmed') AS confirmed,
-              SUM(kind = 'rejection' AND status != 'dismissed') AS rejection,
-              (SELECT COUNT(*) FROM pairs WHERE done = 0) AS pending
-       FROM insights`,
-    ).first();
-    return Response.json(counts);
   }
   const m = url.pathname.match(/^\/api\/insights\/(\d+)$/);
   if (m && req.method === "POST") {
     const { status } = await req.json<{ status: string }>();
-    if (!["candidate", "confirmed", "dismissed"].includes(status)) return new Response("bad status", { status: 400 });
+    if (!["confirmed", "dismissed"].includes(status)) return new Response("bad status", { status: 400 });
     await env.DB.prepare("UPDATE insights SET status = ? WHERE id = ?").bind(status, Number(m[1])).run();
     return new Response(null, { status: 204 });
   }
@@ -369,5 +383,5 @@ const oauthProvider = (env: Env) => {
 
 export default {
   fetch: (req, env, ctx) => oauthProvider(env).fetch(req, env, ctx),
-  scheduled: (_event, env, ctx) => ctx.waitUntil(extract(env)),
+  scheduled: (_event, env, ctx) => ctx.waitUntil(extract(env).then(() => organize(env))),
 } satisfies ExportedHandler<Env>;

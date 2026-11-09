@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { test } from "node:test";
-import { redact, splitPrompt, verify, type Item, type Pair } from "../src/extract.ts";
+import { planPlacements, redact, splitPrompt, verify, type Item, type Pair, type Placement } from "../src/extract.ts";
 
 const pair = (o: Partial<Pair> = {}): Pair => ({
   prompt_id: "p1",
@@ -63,6 +63,17 @@ test("splitPrompt: 명령어·시스템 메시지는 버리고 붙여넣기는 �
     mine: "이거 맞아?",
     quoted: "AI 답변",
   });
+});
+
+test("planPlacements: 정리된 원칙은 건드리지 않고, 사라지거나 없는 대상으로는 합치지 않는다", () => {
+  const p = (theme_id: number, merge_into: number | null = null, axis = "필요한 것만"): Placement => ({ theme_id, axis, merge_into, statement: null });
+  const plan = planPlacements(
+    [p(10), p(11, 10), p(12, 1), p(13, 11), p(14, 14), p(15, 99), p(16, null, " "), p(1, 10)],
+    new Set([10, 11, 12, 13, 14, 15, 16]),
+    new Set([1]),
+  );
+  assert.deepEqual(plan.merge, [{ from: 11, to: 10 }, { from: 12, to: 1 }]); // 새 테마끼리, 정리된 원칙으로
+  assert.deepEqual(plan.keep.map((k) => k.id), [10, 13, 14, 15]); // 13은 합쳐질 11을 가리켰고, 16은 축이 비어 다음에 다시
 });
 
 test("redact", () => {
